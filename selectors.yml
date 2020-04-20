@@ -1,0 +1,41 @@
+name:
+    css: '#productTitle'
+    type: Text
+price:
+    css: '#price_inside_buybox'
+    type: Text
+short_description:
+    css: '#featurebullets_feature_div'
+    type: Text
+images:
+    css: '.imgTagWrapper img'
+    type: Attribute
+    attribute: data-a-dynamic-image
+rating:
+    css: span.arp-rating-out-of-text
+    type: Text
+number_of_reviews:
+    css: 'a.a-link-normal h2'
+    type: Text
+variants:
+    css: 'form.a-section li'
+    multiple: true
+    type: Text
+    children:
+        name:
+            css: ""
+            type: Attribute
+            attribute: title
+        asin:
+            css: ""
+            type: Attribute
+            attribute: data-defaultasin
+product_description:
+    css: '#productDescription'
+    type: Text
+sales_rank:
+    css: 'li#SalesRank'
+    type: Text
+link_to_all_reviews:
+    css: 'div.card-padding a.a-link-emphasis'
+    type: Link
