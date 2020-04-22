@@ -6,7 +6,7 @@ Full article at [ScrapeHero Tutorials](https://www.scrapehero.com/tutorial-how-t
 
 ## Usage
 
-1. Install Requirements `pip3 install requirements.txt`
+1. Install Requirements `pip3 install -r requirements.txt`
 1. Add Amazon Product URLS to [urls.txt](urls.txt)
 1. Run `python3 amazon.py`
 1. Get data from [output.jsonl](output.jsonl)
