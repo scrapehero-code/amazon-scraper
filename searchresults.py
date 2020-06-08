@@ -41,6 +41,7 @@ with open("search_results_urls.txt",'r') as urllist, open('search_results_output
         data = scrape(url) 
         if data:
             for product in data['products']:
+                product['search_url'] = url
                 print("Saving Product: %s"%product['title'])
                 json.dump(product,outfile)
                 outfile.write("\n")
