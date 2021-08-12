@@ -1,9 +1,11 @@
 from selectorlib import Extractor
 import requests 
+import os
 import json 
 from time import sleep
 
 
+SLEEP_FOR_N_SECONDS = 0
 # Create an Extractor by reading from the YAML file
 e = Extractor.from_yaml_file('search_results.yml')
 
@@ -36,7 +38,8 @@ def scrape(url):
     return e.extract(r.text)
 
 # product_data = []
-with open("search_results_urls.txt",'r') as urllist, open('search_results_output.jsonl','w') as outfile:
+with open("search_results_urls.txt",'r') as urllist, open('search_results_output.json','w') as outfile:
+    outfile.write("[") #json object opening
     for url in urllist.read().splitlines():
         if url:
             data = scrape(url) 
@@ -45,6 +48,13 @@ with open("search_results_urls.txt",'r') as urllist, open('search_results_output
                     product['search_url'] = url
                     print("Saving Product: %s"%product['title'])
                     json.dump(product,outfile)
-                    outfile.write("\n")
-                    # sleep(5)
+                    outfile.write(",\n")
+                        
+    sleep(SLEEP_FOR_N_SECONDS) #wait for n seconds for the new product type
+
+    # remove the final comma
+    outfile.seek(-1, os.SEEK_END)
+    outfile.truncate()
+
+    outfile.write("]") #json object closing
     
