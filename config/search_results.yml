@@ -5,24 +5,27 @@ products:
     type: Text
     children:
         title:
-            css: 'h2 a.a-link-normal.a-text-normal'
+            css: 'h2 span'
             xpath: null
             type: Text
         url:
-            css: 'h2 a.a-link-normal.a-text-normal'
+            css: 'h2 a, a.a-link-normal.s-no-outline'
             xpath: null
             type: Link
+        image:
+            css: 'img.s-image'
+            xpath: null
+            type: Attribute
+            attribute: src
         rating:
-            css: 'div.a-row.a-size-small span:nth-of-type(1)'
+            css: 'span.a-icon-alt'
             xpath: null
-            type: Attribute
-            attribute: aria-label
+            type: Text
         reviews:
-            css: 'div.a-row.a-size-small span:nth-of-type(2)'
+            css: 'span.a-size-base.s-underline-text'
             xpath: null
-            type: Attribute
-            attribute: aria-label
+            type: Text
         price:
-            css: 'span.a-price:nth-of-type(1) span.a-offscreen'
+            css: 'span.a-price span.a-offscreen'
             xpath: null
             type: Text

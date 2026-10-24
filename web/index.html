@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Scraped</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Cards fade in once the data has finished loading */
+        .fade-in {
+            animation: fadeIn 0.4s ease both;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Header -->
+    <header class="bg-orange-500 text-white">
+        <div class="max-w-6xl mx-auto px-4 py-6 flex flex-wrap items-center justify-between gap-3">
+            <h1 class="text-2xl font-bold">Data Scraped</h1>
+
+            <div class="flex flex-wrap items-center gap-2 text-sm">
+                <button id="btn-new"
+                    class="bg-white text-orange-600 font-medium px-4 py-2 rounded-lg hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Scrape new
+                </button>
+                <button id="btn-all"
+                    class="bg-orange-600 text-white font-medium px-4 py-2 rounded-lg border border-white/40 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Re-scrape all
+                </button>
+                <span id="count" class="bg-white/20 px-3 py-2 rounded-lg">0 products</span>
+            </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto px-4 pb-3 text-xs text-white/90 flex justify-between gap-2">
+            <span id="message"></span>
+            <span id="updated"></span>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-6">
+
+        <!-- Category tabs -->
+        <div id="tabs" class="flex gap-2 overflow-x-auto pb-3 border-b border-gray-200"></div>
+
+        <!-- Search + sort -->
+        <div class="flex flex-col sm:flex-row gap-3 mt-4 mb-6">
+            <input id="search" type="text" placeholder="Search products..."
+                class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+            <select id="sort"
+                class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-400">
+                <option value="default">Sort: Default</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="rating-desc">Rating: High to Low</option>
+                <option value="reviews-desc">Most Reviews</option>
+            </select>
+        </div>
+
+        <p id="status" class="hidden text-center text-gray-500"></p>
+        <div id="grid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 transition-opacity duration-300"></div>
+    </main>
+
+    <script src="main.js"></script>
+</body>
+
+</html>

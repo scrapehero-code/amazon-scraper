@@ -1,0 +1,20 @@
+[project]
+name = "amazon-scraper"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "KaraniAbdellah", email = "abdellahkarani@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.34.2",
+    "selectorlib>=0.16.0",
+]
+
+[project.scripts]
+amazon-scraper = "amazon_scraper:main"
+
+[build-system]
+requires = ["uv_build>=0.12.19,<0.13.0"]
+build-backend = "uv_build"

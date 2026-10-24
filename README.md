@@ -1,83 +1,194 @@
-# Amazon Scraper using Selectorlib 
+# Amazon Scraper with Docker
 
-A simple amazon scraper to extract product details and prices from Amazon.com using Python Requests and Selectorlib. 
+A small project that collects products from Amazon search pages and shows them on a simple web page.
 
-Full article at [ScrapeHero Tutorials](https://www.scrapehero.com/tutorial-how-to-scrape-amazon-product-details-using-python-and-selectorlib/)
+You write a list of searches (for example "laptops"). The scraper opens each search page, saves the products, and the web page shows them in tabs, one tab for each category.
 
-There are two simple scrapers in this project. 
-1. Amazon Product Page Scraper `amazon.py`
-1. Amazon Search Results Page Scraper `searchresults.py`
+Everything runs with one command: `docker compose up -d`.
 
-Note: A completely web browser based commercial version of these scrapers are available in [ScrapeHero Marketplace](https://www.scrapehero.com/marketplace/)
-## Usage
+> This project is based on the [Amazon scraper by ScrapeHero](https://github.com/scrapehero-code/amazon-scraper). It uses Python Requests and Selectorlib. We added Docker, an API, and a web page.
 
-From a terminal 
+---
 
-1. Clone this project  `git clone https://github.com/scrapehero-code/amazon-scraper.git` and cd into it `cd amazon-scraper`
-1. Add a Virtual Environment `python3 -m venv .venv` (Optional)
-1. Activate the Virtual Environment `source .venv/bin/activate` (Optional) 
-1. Install Requirements `pip3 install -r requirements.txt`
+## Features
 
-## Scrape Product Details from Product Page
+- **One command to start.** Docker runs the scraper and the web page for you.
+- **Categories as tabs.** Each search in your list has a category (like "Laptops"). Each category gets its own tab on the page.
+- **Scrape new.** Scrapes only the new searches you added. Old products stay.
+- **Re-scrape all.** Scrapes every search again. If Amazon blocks one search, its old products stay.
+- **Auto check on page load.** When you open or refresh the page, it checks for new searches in the background.
+- **Search and sort.** Search by title. Sort by price, rating, or number of reviews.
+- **Loading look.** Gray placeholder cards show while data loads. Images fade in when ready.
+- **Safe saving.** Data is written to a temporary file first, so the page never reads a half-written file.
+- **Easy settings.** Change your list of searches in a file. No rebuild needed.
 
-1. Add Amazon Product URLS to [urls.txt](urls.txt)
-1. Run `python3 amazon.py`
-1. Get data from [output.jsonl](output.jsonl)
+---
 
-## Scrape Products from Search Results
+## Screens
+Web page: from http://localhost:8080/index.html:
 
-This scraper only scrapes product from the first page of search results
+<img src="images/screen.png"/>
 
-1. Add Amazon Product URLS to [search_results_urls.txt](search_results_urls.txt)
-1. Run `python3 searchresults.py`
-1. Get data from [search_results_output.jsonl](search_results_output.jsonl)
+Docker Containers:
 
-## Example Data Format
+<img src="images/docker-screen.png"/>
 
-### Product Details
+## Architecture
+
+```mermaid
+flowchart LR
+    B[Browser] -->|"page, main.js, data"| N[nginx - web container]
+    B -->|"/api/..."| N
+    N -->|"/api/ requests"| A[FastAPI - scraper container]
+    A --> S[searchresults.py]
+    S -->|"downloads search pages"| AZ[(Amazon)]
+    C[config/ - your URL list] --> S
+    SEL[selectors.yml] --> S
+    S -->|"writes"| D[data/search_results_output.jsonl]
+    D -->|"read-only"| N
+```
+
+There are two containers:
+
+| Container | What it does |
+|-----------|--------------|
+| **web** (nginx) | Serves `index.html`, `main.js`, and the data file. It sends every `/api/` request to the scraper. |
+| **scraper** (FastAPI) | Waits for a request, runs the scraper in the background, and tells the page when it is done. |
+
+The two containers share the `data/` folder. The scraper writes to it. The web container only reads from it.
+
+### What happens when you click "Scrape new"
+
+1. The page sends `POST /api/scrape?mode=new`.
+2. The API starts the scrape in the background and answers right away.
+3. The scraper reads your list of searches and finds the ones not saved yet.
+4. It downloads each new search page from Amazon and pulls out the products.
+5. It saves everything to `data/search_results_output.jsonl`.
+6. Meanwhile the page asks `GET /api/status` every 2 seconds.
+7. When the status says "done", the page loads the new data and shows the cards.
+
+### Files in this project
+
+```
+amazon-scraper-with-docker/
+├── api.py               # FastAPI app: the two API endpoints
+├── searchresults.py     # The scraping code
+├── selectors.yml        # Where to find title, price, rating... on the Amazon page
+├── docker-compose.yml   # Starts the scraper and the web server
+├── nginx.conf           # Web server settings (and the /api/ forward)
+├── config/              # Your settings: the list of searches
+├── data/                # Saved results (created by the scraper)
+├── web/                 # The web page: index.html and main.js
+├── src/                 # Python source code
+├── pyproject.toml       # Python project settings (uv)
+├── uv.lock              # Locked package versions (uv)
+├── requirements.txt     # Package list
+└── README.md            # This file
+```
+
+---
+
+## How to run
+
+You need [Docker Desktop](https://www.docker.com/products/docker-desktop/). Make sure it is running before you start.
+
+1. Open a terminal in the project folder.
+2. Start everything:
+
+   ```
+   docker compose up -d
+   ```
+
+3. Wait about 30 seconds the first time. The scraper installs its packages.
+4. Open **http://localhost:8080/index.html**.
+
+Useful commands:
+
+| Command | What it does |
+|---------|--------------|
+| `docker compose logs -f scraper` | Watch what the scraper is doing |
+| `docker compose restart scraper` | Restart the scraper after you change a `.py` file |
+| `docker compose down` | Stop everything |
+
+If you change `index.html` or `main.js`, just refresh the browser.
+
+---
+
+## How to add searches
+
+Your list of searches is a JSON file in the `config/` folder, named `search_results_urls.json`. Each item has a category and a URL:
+
+```json
+[
+  {
+    "category": "Laptops",
+    "url": "https://www.amazon.com/s?k=laptops"
+  },
+  {
+    "category": "Tablets",
+    "url": "https://www.amazon.com/s?k=tablets"
+  }
+]
+```
+
+To add a new search:
+
+1. Add a new item to the file and save it.
+2. Refresh the page, or click **Scrape new**.
+3. A new tab appears for the new category.
+
+Notes:
+
+- Only the first page of each search is scraped.
+- If you rename a category in the file, the tab is renamed on the next scrape.
+- If you delete a search from the file, its products are removed the next time you click **Re-scrape all**. **Scrape new** never removes products.
+
+---
+
+## API
+
+The page uses these two endpoints. You can also call them yourself.
+
+| Method | Path | What it does |
+|--------|------|--------------|
+| `POST` | `/api/scrape?mode=new` | Scrape only searches that are not saved yet |
+| `POST` | `/api/scrape?mode=all` | Scrape every search again (you must wait 60 seconds between two of these) |
+| `GET` | `/api/status` | Says if a scrape is running, and the last message |
+
+---
+
+## Data format
+
+Each line of `data/search_results_output.jsonl` is one product (JSON Lines format):
+
 ```json
 {
-  "name": "2020 HP 15.6\" Laptop Computer, 10th Gen Intel Quard-Core i7 1065G7 up to 3.9GHz, 16GB DDR4 RAM, 512GB PCIe SSD, 802.11ac WiFi, Bluetooth 4.2, Silver, Windows 10, YZAKKA USB External DVD + Accessories",
-  "price": "$959.00",
-  "short_description": "Powered by latest 10th Gen Intel Core i7-1065G7 Processor @ 1.30GHz (4 Cores, 8M Cache, up to 3.90 GHz); Ultra-low-voltage platform. Quad-core, eight-way processing provides maximum high-efficiency power to go.\n15.6\" diagonal HD SVA BrightView micro-edge WLED-backlit, 220 nits, 45% NTSC (1366 x 768) Display; Intel Iris Plus Graphics\n16GB 2666MHz DDR4 Memory for full-power multitasking; 512GB Solid State Drive (PCI-e), Save files fast and store more data. With massive amounts of storage and advanced communication power, PCI-e SSDs are great for major gaming applications, multiple servers, daily backups, and more.\nRealtek RTL8821CE 802.11b/g/n/ac (1x1) Wi-Fi and Bluetooth 4.2 Combo; 1 USB 3.1 Gen 1 Type-C (Data Transfer Only, 5 Gb/s signaling rate); 2 USB 3.1 Gen 1 Type-A (Data Transfer Only); 1 AC smart pin; 1 HDMI 1.4b; 1 headphone/microphone combo\nWindows 10 Home, 64-bit, English; Natural silver; YZAKKA USB External DVD drive + USB extension cord 6ft, HDMI cable 6ft and Mouse Pad\n› See more product details",
-  "images": "{\"https://images-na.ssl-images-amazon.com/images/I/61CBqERgZ7L._AC_SX425_.jpg\":[425,425],\"https://images-na.ssl-images-amazon.com/images/I/61CBqERgZ7L._AC_SX466_.jpg\":[466,466],\"https://images-na.ssl-images-amazon.com/images/I/61CBqERgZ7L._AC_SY355_.jpg\":[355,355],\"https://images-na.ssl-images-amazon.com/images/I/61CBqERgZ7L._AC_SX569_.jpg\":[569,569],\"https://images-na.ssl-images-amazon.com/images/I/61CBqERgZ7L._AC_SY450_.jpg\":[450,450],\"https://images-na.ssl-images-amazon.com/images/I/61CBqERgZ7L._AC_SX679_.jpg\":[679,679],\"https://images-na.ssl-images-amazon.com/images/I/61CBqERgZ7L._AC_SX522_.jpg\":[522,522]}",
-  "variants": [
-    {
-      "name": "Click to select 4GB DDR4 RAM, 128GB PCIe SSD",
-      "asin": "B01MCZ4LH1"
-    },
-    {
-      "name": "Click to select 8GB DDR4 RAM, 256GB PCIe SSD",
-      "asin": "B08537NR9D"
-    },
-    {
-      "name": "Click to select 12GB DDR4 RAM, 512GB PCIe SSD",
-      "asin": "B08537ZDYH"
-    },
-    {
-      "name": "Click to select 16GB DDR4 RAM, 512GB PCIe SSD",
-      "asin": "B085383P7M"
-    },
-    {
-      "name": "Click to select 20GB DDR4 RAM, 1TB PCIe SSD",
-      "asin": "B08537NDVZ"
-    }
-  ],
-  "product_description": "Capacity:16GB DDR4 RAM, 512GB PCIe SSD\n\nProcessor\n\n  Intel Core i7-1065G7 (1.3 GHz base frequency, up to 3.9 GHz with Intel Turbo Boost Technology, 8 MB cache, 4 cores)\n\nChipset\n\n  Intel Integrated SoC\n\nMemory\n\n  16GB DDR4-2666 SDRAM\n\nVideo graphics\n\n  Intel Iris Plus Graphics\n\nHard drive\n\n  512GB PCIe NVMe M.2 SSD\n\nDisplay\n\n  15.6\" diagonal HD SVA BrightView micro-edge WLED-backlit, 220 nits, 45% NTSC (1366 x 768)\n\nWireless connectivity\n\n  Realtek RTL8821CE 802.11b/g/n/ac (1x1) Wi-Fi and Bluetooth 4.2 Combo\n\nExpansion slots\n\n  1 multi-format SD media card reader\n\nExternal ports\n\n  1 USB 3.1 Gen 1 Type-C (Data Transfer Only, 5 Gb/s signaling rate); 2 USB 3.1 Gen 1 Type-A (Data Transfer Only); 1 AC smart pin; 1 HDMI 1.4b; 1 headphone/microphone combo\n\nMinimum dimensions (W x D x H)\n\n  9.53 x 14.11 x 0.70 in\n\nWeight\n\n  3.75 lbs\n\nPower supply type\n\n  45 W Smart AC power adapter\n\nBattery type\n\n  3-cell, 41 Wh Li-ion\n\nBattery life mixed usage\n\n  Up to 11 hours and 30 minutes\n\n  Video Playback Battery life\n\n  Up to 10 hours\n\nWebcam\n\n  HP TrueVision HD Camera with integrated dual array digital microphone\n\nAudio features\n\n  Dual speakers\n\nOperating system\n\n  Windows 10 Home 64\n\nAccessories\n\n  YZAKKA USB External DVD drive + USB extension cord 6ft, HDMI cable 6ft and Mouse Pad",
-  "link_to_all_reviews": "https://www.amazon.com/HP-Computer-Quard-Core-Bluetooth-Accessories/product-reviews/B085383P7M/ref=cm_cr_dp_d_show_all_btm?ie=UTF8&reviewerType=all_reviews"
+  "title": "Dell Inspiron 15.6\" Laptop - Intel i3 - 8GB RAM - 128GB SSD",
+  "url": "/Dell-Inspiron-Laptop/dp/B08173ZTJX/ref=sr_1_3",
+  "image": "https://m.media-amazon.com/images/I/example.jpg",
+  "rating": "4.1 out of 5 stars",
+  "reviews": "(122)",
+  "price": "$472.00",
+  "category": "Laptops",
+  "search_url": "https://www.amazon.com/s?k=laptops"
 }
 ```
 
-### Search Results 
-Each result would look similar
+| Field | Meaning |
+|-------|---------|
+| `title`, `url`, `image`, `rating`, `reviews`, `price` | Pulled from the Amazon page using `selectors.yml` |
+| `category` | From your list of searches |
+| `search_url` | The search page the product came from |
 
-```json
-{
-    "title": "New ! Dell Inspiron i3583 15.6\" HD Touch-Screen Laptop - Intel i3-8145U - 8GB DDR4-128GB SSD - Windows 10 - Wireless-AC - Bluetooth - SD Card Reader - HDMI & USB 3.1 -Waves MaxxAudio Pro- Black",
-    "url": "/Dell-Inspiron-i3583-Touch-Screen-Laptop/dp/B08173ZTJX/ref=sr_1_3?dchild=1&keywords=laptops&qid=1591584632&sr=8-3",
-    "rating": "4.1 out of 5 stars",
-    "reviews": "122",
-    "price": "$472.00",
-    "search_url": "https://www.amazon.com/s?k=laptops"
-}
-```
+---
+
+
+## Good to know
+
+- Amazon changes its pages often. If the scraper stops finding products, the selectors in `selectors.yml` probably need an update.
+- Amazon may block a lot of fast requests from one computer. The scraper waits 3 seconds between searches to be gentle.
+- Read and follow Amazon's rules about automated access before you use this on a large scale.
+
+
+
+Built with ❤️ by the community, from [scrapehero-code/amazon-scraper](https://github.com/scrapehero-code/amazon-scraper).
